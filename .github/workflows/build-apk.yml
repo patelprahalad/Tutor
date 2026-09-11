@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,7 +29,43 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        id: build
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee build.log
+
+      - name: Report build failure as an issue
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, subprocess, urllib.request
+
+          with open("build.log", "r", errors="replace") as f:
+              log = f.read()
+          tail = log[-60000:]
+
+          body = f"Automated report for run {os.environ['GITHUB_RUN_ID']} (commit {os.environ['GITHUB_SHA']}).\n\n```\n{tail}\n```"
+          payload = json.dumps({
+              "title": f"Build failure: run {os.environ['GITHUB_RUN_ID']}",
+              "body": body[:65000],
+              "labels": ["ci-failure"],
+          }).encode()
+
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {os.environ['GITHUB_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(req) as resp:
+              print(resp.status, resp.read().decode())
+          PYEOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
