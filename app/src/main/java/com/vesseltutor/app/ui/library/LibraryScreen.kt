@@ -2,6 +2,7 @@ package com.vesseltutor.app.ui.library
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,9 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.vesseltutor.app.data.local.entity.ScenarioEntity
+import com.vesseltutor.app.data.seed.ScenarioCategory
 
 @Composable
 fun LibraryScreen(
@@ -43,13 +47,27 @@ fun LibraryScreen(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(scenarios, key = { it.id }) { scenario ->
-                ScenarioListItem(scenario = scenario, onClick = { onScenarioSelected(scenario.id) })
+        if (scenarios.isEmpty()) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    text = if (selectedCategory == ScenarioCategory.MY_TOPICS) {
+                        "No topics yet. Tap the + icon at the top to create one from a topic, photo, or document."
+                    } else {
+                        "No scenarios in this category yet."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(scenarios, key = { it.id }) { scenario ->
+                    ScenarioListItem(scenario = scenario, onClick = { onScenarioSelected(scenario.id) })
+                }
             }
         }
     }
