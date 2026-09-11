@@ -20,7 +20,7 @@ import com.vesseltutor.app.data.local.entity.StreakEntity
         MistakeWordEntity::class,
         StreakEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,7 +40,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "vessel_tutor.db"
-                ).build().also { INSTANCE = it }
+                )
+                    // Pre-release schema; wipe and reseed rather than hand-writing migrations.
+                    .fallbackToDestructiveMigration()
+                    .build().also { INSTANCE = it }
             }
     }
 }

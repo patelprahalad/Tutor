@@ -23,4 +23,6 @@ class ScenarioRepository(private val dao: ScenarioDao) {
         val list = if (category != null) dao.getByCategoryOnce(category) else dao.getAllOnce()
         return list.randomOrNull()
     }
+
+    suspend fun saveGenerated(scenario: ScenarioEntity): Long = dao.insert(scenario)
 }

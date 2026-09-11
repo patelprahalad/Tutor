@@ -5,9 +5,12 @@ import com.vesseltutor.app.feedback.FeedbackResult
 
 enum class Phase { IDLE, LISTENING, PROCESSING, FEEDBACK_READY }
 
+enum class PracticeMode { FREE_RESPONSE, REPEAT_AFTER_ME }
+
 data class PracticeUiState(
     val scenario: ScenarioEntity? = null,
     val isLoadingScenario: Boolean = true,
+    val mode: PracticeMode = PracticeMode.FREE_RESPONSE,
     val phase: Phase = Phase.IDLE,
     val transcript: String = "",
     val struggledWords: Set<String> = emptySet(),

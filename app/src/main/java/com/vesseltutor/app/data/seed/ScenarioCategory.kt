@@ -7,15 +7,21 @@ object ScenarioCategory {
     const val EXPLAINING_PROBLEMS = "Explaining Problems"
     const val REQUESTS = "Requests"
     const val CONFIRMATIONS = "Confirmations"
+    const val DAILY_LIFE = "Daily Life"
+    /** Holds scenarios generated from a user-typed topic, photo, or uploaded document. */
+    const val MY_TOPICS = "My Topics"
 
-    val ALL = listOf(
+    val SEEDED = listOf(
         STATUS_UPDATES,
         PHONE_CALLS,
         MEETINGS,
         EXPLAINING_PROBLEMS,
         REQUESTS,
-        CONFIRMATIONS
+        CONFIRMATIONS,
+        DAILY_LIFE
     )
+
+    val ALL = SEEDED + MY_TOPICS
 }
 
 object Difficulty {

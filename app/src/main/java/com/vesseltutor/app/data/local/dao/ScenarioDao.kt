@@ -13,6 +13,9 @@ interface ScenarioDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(scenarios: List<ScenarioEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(scenario: ScenarioEntity): Long
+
     @Query("SELECT * FROM scenarios ORDER BY category, difficulty")
     fun getAll(): Flow<List<ScenarioEntity>>
 

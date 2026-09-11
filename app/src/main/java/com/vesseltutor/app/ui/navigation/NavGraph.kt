@@ -1,12 +1,17 @@
 package com.vesseltutor.app.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -18,19 +23,41 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vesseltutor.app.VesselTutorApp
 import com.vesseltutor.app.di.ViewModelFactory
+import com.vesseltutor.app.ui.addtopic.AddTopicScreen
+import com.vesseltutor.app.ui.addtopic.AddTopicViewModel
 import com.vesseltutor.app.ui.library.LibraryScreen
 import com.vesseltutor.app.ui.library.LibraryViewModel
 import com.vesseltutor.app.ui.practice.PracticeScreen
 import com.vesseltutor.app.ui.practice.PracticeViewModel
 import com.vesseltutor.app.ui.progress.ProgressScreen
 import com.vesseltutor.app.ui.progress.ProgressViewModel
+import com.vesseltutor.app.ui.settings.SettingsScreen
+import com.vesseltutor.app.ui.settings.SettingsViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavGraph(app: VesselTutorApp) {
     val navController = rememberNavController()
     val factory = ViewModelFactory(app)
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Vessel Tutor") },
+                actions = {
+                    IconButton(onClick = {
+                        navController.navigate(Screen.AddTopic.route) { launchSingleTop = true }
+                    }) {
+                        Icon(Screen.AddTopic.icon, contentDescription = Screen.AddTopic.label)
+                    }
+                    IconButton(onClick = {
+                        navController.navigate(Screen.Settings.route) { launchSingleTop = true }
+                    }) {
+                        Icon(Screen.Settings.icon, contentDescription = Screen.Settings.label)
+                    }
+                }
+            )
+        },
         bottomBar = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = backStackEntry?.destination
@@ -51,7 +78,7 @@ fun AppNavGraph(app: VesselTutorApp) {
                                 }
                             }
                         },
-                        icon = { androidx.compose.material3.Icon(screen.icon, contentDescription = screen.label) },
+                        icon = { Icon(screen.icon, contentDescription = screen.label) },
                         label = { Text(screen.label) }
                     )
                 }
@@ -61,7 +88,7 @@ fun AppNavGraph(app: VesselTutorApp) {
         NavHost(
             navController = navController,
             startDestination = Screen.Practice.route,
-            modifier = androidx.compose.ui.Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Practice.route) {
                 val viewModel: PracticeViewModel = viewModel(factory = factory)
@@ -92,6 +119,26 @@ fun AppNavGraph(app: VesselTutorApp) {
             composable(Screen.Progress.route) {
                 val viewModel: ProgressViewModel = viewModel(factory = factory)
                 ProgressScreen(viewModel = viewModel)
+            }
+
+            composable(Screen.AddTopic.route) {
+                val viewModel: AddTopicViewModel = viewModel(factory = factory)
+                AddTopicScreen(
+                    viewModel = viewModel,
+                    onScenarioReady = { scenarioId ->
+                        navController.navigate(practiceRoute(scenarioId)) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onOpenSettings = {
+                        navController.navigate(Screen.Settings.route) { launchSingleTop = true }
+                    }
+                )
+            }
+
+            composable(Screen.Settings.route) {
+                val viewModel: SettingsViewModel = viewModel(factory = factory)
+                SettingsScreen(viewModel = viewModel)
             }
         }
     }

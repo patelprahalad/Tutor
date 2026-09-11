@@ -27,6 +27,7 @@ import com.vesseltutor.app.ui.theme.AlertRed
 import com.vesseltutor.app.ui.theme.SuccessGreen
 import com.vesseltutor.app.ui.theme.WarningAmber
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PracticeScreen(
     viewModel: PracticeViewModel,
@@ -54,7 +55,7 @@ fun PracticeScreen(
         if (granted) viewModel.startListening()
     }
 
-    LaunchedEffect(uiState.scenario?.id) {
+    LaunchedEffect(uiState.scenario?.id, uiState.mode) {
         if (uiState.scenario != null) {
             viewModel.speakPrompt()
         }
@@ -86,18 +87,59 @@ fun PracticeScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = uiState.mode == PracticeMode.FREE_RESPONSE,
+                    onClick = { viewModel.setMode(PracticeMode.FREE_RESPONSE) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) { Text("Answer freely") }
+                SegmentedButton(
+                    selected = uiState.mode == PracticeMode.REPEAT_AFTER_ME,
+                    onClick = { viewModel.setMode(PracticeMode.REPEAT_AFTER_ME) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) { Text("Listen & repeat") }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text(
-                        text = scenario.promptText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { viewModel.speakPrompt() }) {
-                        Icon(Icons.Filled.VolumeUp, contentDescription = "Replay prompt")
+                Column(modifier = Modifier.padding(20.dp)) {
+                    if (uiState.mode == PracticeMode.FREE_RESPONSE) {
+                        if (scenario.context.isNotBlank()) {
+                            Text(
+                                text = scenario.context,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                text = scenario.promptText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { viewModel.speakPrompt() }) {
+                                Icon(Icons.Filled.VolumeUp, contentDescription = "Replay prompt")
+                            }
+                        }
+                    } else {
+                        Text(
+                            "Listen to the sentence, then repeat it as closely as you can.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                text = scenario.sampleAnswer,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { viewModel.speakPrompt() }) {
+                                Icon(Icons.Filled.VolumeUp, contentDescription = "Replay sentence")
+                            }
+                        }
                     }
                 }
             }
@@ -166,7 +208,7 @@ fun PracticeScreen(
 
             uiState.feedback?.let { feedback ->
                 Spacer(Modifier.height(16.dp))
-                FeedbackCard(feedback = feedback)
+                FeedbackCard(feedback = feedback, mode = uiState.mode)
 
                 Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -180,15 +222,18 @@ fun PracticeScreen(
     }
 }
 
-private fun statusText(uiState: PracticeUiState): String = when (uiState.phase) {
-    Phase.IDLE -> if (uiState.feedback == null) {
-        "Tap the microphone when you're ready to speak"
+private fun statusText(uiState: PracticeUiState): String {
+    val readyPrompt = if (uiState.mode == PracticeMode.REPEAT_AFTER_ME) {
+        "Tap the microphone and repeat the sentence"
     } else {
-        "Tap the microphone to try again"
+        "Tap the microphone when you're ready to speak"
     }
-    Phase.LISTENING -> "Listening... take your time"
-    Phase.PROCESSING -> "Processing your answer..."
-    Phase.FEEDBACK_READY -> "Feedback ready"
+    return when (uiState.phase) {
+        Phase.IDLE -> if (uiState.feedback == null) readyPrompt else "Tap the microphone to try again"
+        Phase.LISTENING -> "Listening... take your time"
+        Phase.PROCESSING -> "Processing your answer..."
+        Phase.FEEDBACK_READY -> "Feedback ready"
+    }
 }
 
 @Composable
@@ -226,11 +271,16 @@ private fun highlightedTranscript(transcript: String, struggledWords: Set<String
 }
 
 @Composable
-private fun FeedbackCard(feedback: FeedbackResult) {
+private fun FeedbackCard(feedback: FeedbackResult, mode: PracticeMode) {
+    val isRepeat = mode == PracticeMode.REPEAT_AFTER_ME
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Score", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(
+                    if (isRepeat) "Match" else "Score",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
                 Text(
                     "${feedback.score} / 100",
                     style = MaterialTheme.typography.titleLarge,
@@ -240,14 +290,30 @@ private fun FeedbackCard(feedback: FeedbackResult) {
 
             if (feedback.matchedPhrases.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                Text("Well said", style = MaterialTheme.typography.titleMedium, color = SuccessGreen)
-                feedback.matchedPhrases.forEach { Text("• $it") }
+                Text(
+                    if (isRepeat) "Words you said correctly" else "Well said",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = SuccessGreen
+                )
+                if (isRepeat) {
+                    Text(feedback.matchedPhrases.joinToString(", "))
+                } else {
+                    feedback.matchedPhrases.forEach { Text("• $it") }
+                }
             }
 
             if (feedback.missingPhrases.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                Text("Try to also include", style = MaterialTheme.typography.titleMedium, color = WarningAmber)
-                feedback.missingPhrases.forEach { Text("• $it") }
+                Text(
+                    if (isRepeat) "Words you missed" else "Try to also include",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WarningAmber
+                )
+                if (isRepeat) {
+                    Text(feedback.missingPhrases.joinToString(", "))
+                } else {
+                    feedback.missingPhrases.forEach { Text("• $it") }
+                }
             }
 
             if (feedback.struggledWords.isNotEmpty()) {

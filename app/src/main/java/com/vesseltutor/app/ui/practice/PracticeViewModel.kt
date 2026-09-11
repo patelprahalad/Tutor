@@ -80,7 +80,28 @@ class PracticeViewModel(
     }
 
     fun speakPrompt() {
-        uiState.value.scenario?.let { ttsManager.speak(it.promptText) }
+        val scenario = uiState.value.scenario ?: return
+        val toSpeak = when (uiState.value.mode) {
+            PracticeMode.FREE_RESPONSE ->
+                if (scenario.context.isNotBlank()) "${scenario.context} ${scenario.promptText}" else scenario.promptText
+            PracticeMode.REPEAT_AFTER_ME -> scenario.sampleAnswer
+        }
+        ttsManager.speak(toSpeak)
+    }
+
+    fun setMode(mode: PracticeMode) {
+        if (_uiState.value.mode == mode) return
+        speechManager.reset()
+        _uiState.update {
+            it.copy(
+                mode = mode,
+                phase = Phase.IDLE,
+                transcript = "",
+                feedback = null,
+                struggledWords = emptySet(),
+                errorMessage = null
+            )
+        }
     }
 
     fun onMicPermissionResult(granted: Boolean) {
@@ -113,7 +134,11 @@ class PracticeViewModel(
 
     private fun onTranscriptReady(transcript: String, uncertainWords: Set<String>) {
         val scenario = _uiState.value.scenario ?: return
-        val feedback = FeedbackEngine.evaluate(transcript, scenario, uncertainWords)
+        val feedback = when (_uiState.value.mode) {
+            PracticeMode.FREE_RESPONSE -> FeedbackEngine.evaluate(transcript, scenario, uncertainWords)
+            PracticeMode.REPEAT_AFTER_ME ->
+                FeedbackEngine.evaluateRepeat(transcript, scenario.sampleAnswer, uncertainWords)
+        }
 
         _uiState.update {
             it.copy(

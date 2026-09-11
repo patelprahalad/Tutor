@@ -3,9 +3,11 @@ package com.vesseltutor.app.di
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.vesseltutor.app.VesselTutorApp
+import com.vesseltutor.app.ui.addtopic.AddTopicViewModel
 import com.vesseltutor.app.ui.library.LibraryViewModel
 import com.vesseltutor.app.ui.practice.PracticeViewModel
 import com.vesseltutor.app.ui.progress.ProgressViewModel
+import com.vesseltutor.app.ui.settings.SettingsViewModel
 
 class ViewModelFactory(private val app: VesselTutorApp) : ViewModelProvider.Factory {
 
@@ -19,6 +21,16 @@ class ViewModelFactory(private val app: VesselTutorApp) : ViewModelProvider.Fact
 
         modelClass.isAssignableFrom(ProgressViewModel::class.java) ->
             ProgressViewModel(app.container.progressRepository) as T
+
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(app.container.apiKeyStore) as T
+
+        modelClass.isAssignableFrom(AddTopicViewModel::class.java) ->
+            AddTopicViewModel(
+                app.container.anthropicClient,
+                app.container.scenarioRepository,
+                app.container.apiKeyStore
+            ) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

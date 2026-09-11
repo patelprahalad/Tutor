@@ -12,10 +12,14 @@ data class ScenarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val category: String,
     val difficulty: String,
+    /** Short situational setup shown and spoken before the prompt, e.g. "You're on the bridge...". */
+    val context: String = "",
     val promptText: String,
     val keyPhrases: String,
     val vocabulary: String,
-    val sampleAnswer: String
+    val sampleAnswer: String,
+    /** True for scenarios a user generated from a topic, photo or document, rather than seeded content. */
+    val isUserGenerated: Boolean = false
 ) {
     fun keyPhraseList(): List<String> =
         keyPhrases.split("|").map { it.trim() }.filter { it.isNotBlank() }
